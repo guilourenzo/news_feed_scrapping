@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "news-scrapping"
+version = "0.1.0"
+description = ""
+authors = ["Guilherme Lourenço <Guilherme.Lourenco@br.experian.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+feedparser = "^6.0.11"
+pandas = "^2.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
