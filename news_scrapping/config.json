@@ -1,0 +1,96 @@
+{
+  "db_location": "news_scrapping/db/articles.db",
+  "feeds": [
+    {
+      "url": "https://g1.globo.com/rss/g1/",
+      "keywords": [
+        "economia",
+        "investimento",
+        "mercado"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "finance"
+    },
+    {
+      "url": "https://g1.globo.com/rss/g1/mundo/",
+      "keywords": [
+        "economia",
+        "investimento",
+        "mercado"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "finance"
+    },
+    {
+      "url": "https://www.infomoney.com.br/feed/",
+      "keywords": [
+        "economia",
+        "investimento",
+        "mercado"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "finance"
+    },
+    {
+      "url": "https://rss.uol.com.br/feed/noticias.xml",
+      "keywords": [
+        "economia",
+        "investimento",
+        "mercado"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "finance"
+    },
+    {
+      "url": "https://www.camara.leg.br/noticias/rss/ultimas-noticias",
+      "keywords": [
+        "lei",
+        "crédito",
+        "proposta",
+        "projeto",
+        "política",
+        "governo",
+        "eleições",
+        "congresso"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "politics"
+    },
+    {
+      "url": "https://g1.globo.com/rss/g1/mundo/",
+      "keywords": [
+        "esporte",
+        "futebol",
+        "basquete",
+        "olimpíadas"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "sports"
+    },
+    {
+      "url": "https://g1.globo.com/rss/g1/tecnologia/",
+      "keywords": [
+        "tecnologia",
+        "inovação",
+        "startup",
+        "internet"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "technology"
+    },
+    {
+      "url": "https://g1.globo.com/rss/g1/pop-arte/",
+      "keywords": [
+        "tecnologia",
+        "inovação",
+        "startup",
+        "internet"
+      ],
+      "start_date": "2024-01-01T00:00:00",
+      "classifier": "technology"
+    }
+  ],
+  "schedule": {
+    "interval_hours": 1
+  }
+}
