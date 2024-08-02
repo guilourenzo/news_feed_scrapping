@@ -4,6 +4,9 @@ import sqlite3
 import streamlit as st
 from datetime import datetime
 from db.database_handler import DatabaseHandler
+from rss_feed_parser import RSSFeedParser
+from article_classifier import ArticleClassifier
+from main import RSSFeedUpdater
 
 # Load the configuration file
 def load_config(file_path='news_scrapping/config.json'):
@@ -17,7 +20,7 @@ def save_config(config, file_path='news_scrapping/config.json'):
         json.dump(config, file, indent=4)
 
 # Load articles from the database
-def load_articles(db_location='db/articles.db'):
+def load_articles(db_location='news_scrapping/db/articles.db'):
     conn = sqlite3.connect(db_location)
     query = "SELECT * FROM articles"
     df = pd.read_sql_query(query, conn)
@@ -83,3 +86,36 @@ if not articles.empty:
 else:
     st.write("No articles found.")
 
+# Manual extraction button
+st.header("Manual Extraction")
+if st.button("Run Extraction Now"):
+    # Initialize database handler
+    db_handler = DatabaseHandler(db_location)
+
+    # Initialize classifiers
+    article_classifier = ArticleClassifier()
+
+    # Define feeds
+    feeds = config['feeds']
+
+    # Initialize feed updater
+    classifiers = {
+        'finance': article_classifier,
+        'politics': article_classifier,
+        'sports': article_classifier,
+        'entertainment': article_classifier,
+        'technology': article_classifier,
+        'health': article_classifier
+    }
+    feed_updater = RSSFeedUpdater(db_handler, classifiers, feeds)
+    
+    # Run the extraction
+    feed_updater.fetch_and_update_articles()
+    st.success("Extraction completed successfully!")
+
+    # Refresh articles
+    articles = load_articles(db_location)
+    if not articles.empty:
+        st.dataframe(articles)
+    else:
+        st.write("No articles found.")
