@@ -1,96 +1,85 @@
-import feedparser
+import json
 import pandas as pd
 import sqlite3
-# import schedule
-import time
-from dateutil import parser as date_parser
+import streamlit as st
+from datetime import datetime
+from db.database_handler import DatabaseHandler
 
-# Function to fetch and parse RSS feed with filters
-def fetch_rss_feed(url, keywords=None, start_date=None):
-    feed = feedparser.parse(url)
-    articles = []
-    for entry in feed.entries:
-        if keywords:
-            if not any(keyword.lower() in (entry.title + ' ' + entry.description).lower() for keyword in keywords):
-                continue
-        
-        if start_date:
-            try:
-                published_date = date_parser.parse(entry.published).replace(tzinfo=None)
-            except Exception as e:
-                print(f"Error parsing date: {e}")
-                continue
+# Load the configuration file
+def load_config(file_path='news_scrapping/config.json'):
+    with open(file_path, 'r') as file:
+        config = json.load(file)
+    return config
 
-            if published_date < start_date:
-                continue
-        
-        articles.append({
-            'title': entry.title,
-            'description': entry.description,
-            'link': entry.link,
-            'published': entry.published
-        })
-    return pd.DataFrame(articles)
+# Save the configuration file
+def save_config(config, file_path='news_scrapping/config.json'):
+    with open(file_path, 'w') as file:
+        json.dump(config, file, indent=4)
 
-# Simple classification function based on keywords
-def classify_article(title, description):
-    finance_keywords = ['stock', 'market', 'finance', 'investment', 'economy']
-    content = title + ' ' + description
-    if any(keyword in content.lower() for keyword in finance_keywords):
-        return 'Finance'
-    else:
-        return 'News'
-
-# Function to initialize the database
-def initialize_db():
-    conn = sqlite3.connect('db/articles.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS articles (
-            title TEXT,
-            description TEXT,
-            link TEXT PRIMARY KEY,
-            published TEXT,
-            category TEXT
-        )
-    ''')
-    conn.commit()
+# Load articles from the database
+def load_articles(db_location='db/articles.db'):
+    conn = sqlite3.connect(db_location)
+    query = "SELECT * FROM articles"
+    df = pd.read_sql_query(query, conn)
     conn.close()
+    return df
 
-# Function to save new articles to the database
-def save_articles_to_db(articles):
-    conn = sqlite3.connect('db/articles.db')
-    cursor = conn.cursor()
-    
-    for _, article in articles.iterrows():
-        try:
-            cursor.execute('''
-                INSERT INTO articles (title, description, link, published, category) VALUES (?, ?, ?, ?, ?)
-            ''', (article['title'], article['description'], article['link'], article['published'], article['category']))
-        except sqlite3.IntegrityError:
-            # Skip duplicates
-            continue
-    
-    conn.commit()
-    conn.close()
+# Initialize Streamlit app
+st.title("RSS News Manager")
 
-# Function to fetch, classify, and save new articles
-def fetch_and_update_articles():
-    g1_rss_url = 'https://g1.globo.com/rss/g1/'
-    infomoney_rss_url = 'https://www.infomoney.com.br/feed/'
-    
-    # Keywords and date filter
-    keywords = ['economy', 'investment', 'market']
-    start_date = date_parser.parse('01 Jan 2024').replace(tzinfo=None)
-    
-    g1_articles = fetch_rss_feed(g1_rss_url, keywords, start_date)
-    infomoney_articles = fetch_rss_feed(infomoney_rss_url, keywords, start_date)
-    
-    all_articles = pd.concat([g1_articles, infomoney_articles], ignore_index=True)
-    all_articles['category'] = all_articles.apply(lambda x: classify_article(x['title'], x['description']), axis=1)
-    
-    save_articles_to_db(all_articles)
-    print(f'Updated articles at {time.strftime("%Y-%m-%d %H:%M:%S")}')
+# Sidebar for configuration
+st.sidebar.title("Configuration")
+config = load_config()
 
-# Initialize the database
-initialize_db()
+# Database location
+st.sidebar.subheader("Database Location")
+db_location = st.sidebar.text_input("Database Location", config['db_location'])
+config['db_location'] = db_location
+
+# Schedule interval
+st.sidebar.subheader("Schedule Interval (Hours)")
+interval_hours = st.sidebar.number_input("Interval Hours", min_value=1, value=config['schedule']['interval_hours'])
+config['schedule']['interval_hours'] = interval_hours
+
+# RSS Feeds Management
+st.sidebar.subheader("Manage RSS Feeds")
+feeds = config['feeds']
+new_feed_url = st.sidebar.text_input("New Feed URL")
+new_feed_keywords = st.sidebar.text_input("Keywords (comma-separated)")
+new_feed_start_date = st.sidebar.date_input("Start Date", datetime.now())
+
+# Add new feed
+if st.sidebar.button("Add Feed"):
+    if new_feed_url and new_feed_keywords and new_feed_start_date:
+        new_feed = {
+            "url": new_feed_url,
+            "keywords": new_feed_keywords.split(","),
+            "start_date": new_feed_start_date.strftime("%Y-%m-%dT%H:%M:%S"),
+            "classifier": st.sidebar.selectbox("Classifier", ["finance", "politics", "sports", "entertainment", "technology", "health"])
+        }
+        feeds.append(new_feed)
+        config['feeds'] = feeds
+        save_config(config)
+        st.sidebar.success("Feed added successfully!")
+
+# List existing feeds
+st.sidebar.subheader("Existing Feeds")
+for i, feed in enumerate(feeds):
+    st.sidebar.markdown(f"**Feed {i + 1}:** {feed['url']}")
+    st.sidebar.text(f"Keywords: {', '.join(feed['keywords'])}")
+    st.sidebar.text(f"Start Date: {feed['start_date']}")
+    st.sidebar.text(f"Classifier: {feed['classifier']}")
+
+# Save configuration changes
+if st.sidebar.button("Save Configuration"):
+    save_config(config)
+    st.sidebar.success("Configuration saved successfully!")
+
+# Main content: Display articles
+st.header("Extracted News Articles")
+articles = load_articles(db_location)
+if not articles.empty:
+    st.dataframe(articles)
+else:
+    st.write("No articles found.")
+
